@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: jaspers-market-bot
+    env: node
+    buildCommand: npm install
+    startCommand: node app.js
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: ACCESS_TOKEN
+        sync: false # Set this in the Render Dashboard for security
+      - key: APP_SECRET
+        value: 3713e4e8c0d70264854a6169fdd9de05
+      - key: VERIFY_TOKEN
+        value: vibecode
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: jaspers-market-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: jaspers-market-redis
+          property: port
+
+databases:
+  - name: jaspers-market-redis
+    type: redis
+    ipAllowList: [] # Only allow internal connections
+    plan: free # Use the free plan for redis
