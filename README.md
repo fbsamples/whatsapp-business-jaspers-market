@@ -64,6 +64,12 @@ You can then start a redis daemon locally via command line:
 redis-server --daemonize yes
 ```
 
+Alternatively, if you prefer running Redis in Docker, you can use the following command:
+
+```bash
+docker run --rm  -p 6379:6379 redis
+```
+
 #### 3. Install tunneling service
 
 If not already installed, install ngrok via [download](https://ngrok.com/download) or via command line:
