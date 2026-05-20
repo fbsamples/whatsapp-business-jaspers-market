@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Business Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #111; min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: #075e54;
+      color: white;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .header-logo {
+      width: 42px; height: 42px;
+      background: #25d366;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+    }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header p { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+    /* Layout */
+    .container { max-width: 860px; margin: 28px auto; padding: 0 16px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: white;
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 8px;
+      text-align: center;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: #555;
+      border: none;
+      background: none;
+      transition: all 0.15s;
+    }
+    .tab:hover:not(.active) { background: #f0f2f5; color: #111; }
+    .tab.active { background: #075e54; color: white; }
+
+    /* Section */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Card */
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Form */
+    .field { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #555; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.4px; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #111;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fafafa;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      border-color: #075e54;
+      background: white;
+    }
+    textarea { resize: vertical; min-height: 90px; font-family: inherit; }
+
+    /* Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 24px;
+      background: #075e54;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+    }
+    .btn:hover { background: #054d44; }
+    .btn:disabled { background: #b0b0b0; cursor: not-allowed; }
+
+    /* Status alert */
+    .alert {
+      padding: 11px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 14px;
+      display: none;
+      font-weight: 500;
+    }
+    .alert.success { background: #e8f5e9; color: #2e7d32; display: block; }
+    .alert.error   { background: #ffebee; color: #c62828; display: block; }
+
+    /* Messages */
+    .messages-wrap { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+    .msg {
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      max-width: 72%;
+      line-height: 1.45;
+    }
+    .msg.incoming { background: #f0f2f5; align-self: flex-start; border-bottom-left-radius: 3px; }
+    .msg.outgoing { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .msg-meta { font-size: 11px; color: #888; margin-top: 4px; }
+    .empty { text-align: center; color: #bbb; padding: 48px 20px; font-size: 14px; }
+
+    /* Config grid */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .info-item { background: #f8f9fa; border-radius: 8px; padding: 12px 16px; }
+    .info-item .info-label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
+    .info-item .info-val { font-size: 13px; font-weight: 500; margin-top: 5px; word-break: break-all; }
+
+    /* Badge */
+    .badge { font-size: 11px; font-weight: 400; color: #888; }
+
+    /* Scrollbar */
+    .messages-wrap::-webkit-scrollbar { width: 4px; }
+    .messages-wrap::-webkit-scrollbar-track { background: transparent; }
+    .messages-wrap::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+
+    /* Webhook info box */
+    .webhook-box {
+      background: #fffde7;
+      border: 1px solid #ffe082;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    .webhook-box strong { color: #111; }
+    .webhook-url { font-family: monospace; background: #f5f5f5; padding: 3px 8px; border-radius: 4px; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">💬</div>
+  <div>
+    <h1>WhatsApp Business Dashboard</h1>
+    <p>Jasper's Market — Panel de Control</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showSection('send', this)">✉️ Enviar</button>
+    <button class="tab" onclick="showSection('history', this)">🕐 Historial</button>
+    <button class="tab" onclick="showSection('templates', this)">📋 Plantillas</button>
+    <button class="tab" onclick="showSection('config', this)">⚙️ Configuración</button>
+  </div>
+
+  <!-- ── Enviar Mensaje ── -->
+  <div id="section-send" class="section active">
+    <div class="card">
+      <div class="card-title">Enviar Mensaje de Texto</div>
+      <div class="field">
+        <label>Número destino</label>
+        <input type="text" id="send-to" placeholder="Ej: 521234567890 (con código de país, sin +)" />
+      </div>
+      <div class="field">
+        <label>Mensaje</label>
+        <textarea id="send-text" placeholder="Escribe tu mensaje aquí..."></textarea>
+      </div>
+      <button class="btn" onclick="sendMessage()">Enviar Mensaje</button>
+      <div id="send-alert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- ── Historial ── -->
+  <div id="section-history" class="section">
+    <div class="card">
+      <div class="card-title">
+        Historial de Mensajes
+        <span class="badge" id="last-refresh">–</span>
+      </div>
+      <div class="messages-wrap" id="messages-wrap">
+        <div class="empty">No hay mensajes aún.<br>Los mensajes entrantes aparecerán aquí automáticamente.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Plantillas ── -->
+  <div id="section-templates" class="section">
+    <div class="card">
+      <div class="card-title">Enviar Plantilla Aprobada</div>
+      <div class="webhook-box">
+        ℹ️ Solo puedes enviar templates que ya estén <strong>aprobados</strong> en tu cuenta de Meta Business.<br>
+        El template <strong>hello_world</strong> suele estar disponible por defecto.
+      </div>
+      <div class="field">
+        <label>Número destino</label>
+        <input type="text" id="tpl-to" placeholder="Ej: 521234567890" />
+      </div>
+      <div class="field">
+        <label>Nombre del template</label>
+        <input type="text" id="tpl-name" value="hello_world" placeholder="Ej: hello_world" />
+      </div>
+      <div class="field">
+        <label>Idioma</label>
+        <select id="tpl-lang">
+          <option value="en_US" selected>Inglés — en_US</option>
+          <option value="es">Español — es</option>
+          <option value="es_MX">Español México — es_MX</option>
+          <option value="es_AR">Español Argentina — es_AR</option>
+          <option value="pt_BR">Portugués Brasil — pt_BR</option>
+        </select>
+      </div>
+      <button class="btn" onclick="sendTemplate()">Enviar Plantilla</button>
+      <div id="tpl-alert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- ── Configuración ── -->
+  <div id="section-config" class="section">
+    <div class="card">
+      <div class="card-title">Configuración del Servidor</div>
+      <div class="webhook-box">
+        📡 Para recibir mensajes entrantes, registra este webhook en tu <strong>Meta Developer Dashboard</strong>:<br>
+        <br>URL: <span class="webhook-url" id="webhook-url">Cargando...</span><br>
+        Verify Token: <span class="webhook-url" id="webhook-token">Cargando...</span>
+      </div>
+      <div class="info-grid" id="config-grid">
+        <div class="info-item"><div class="info-label">Cargando...</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let currentSection = "send";
+
+  function showSection(name, tab) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.getElementById("section-" + name).classList.add("active");
+    if (tab) tab.classList.add("active");
+    currentSection = name;
+    if (name === "history") loadMessages();
+    if (name === "config") loadConfig();
+  }
+
+  async function sendMessage() {
+    const to = document.getElementById("send-to").value.trim();
+    const message = document.getElementById("send-text").value.trim();
+    const alert = document.getElementById("send-alert");
+    if (!to || !message) return showAlert(alert, "error", "Completa el número y el mensaje.");
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, message })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert(alert, "success", "✓ Mensaje enviado correctamente.");
+        document.getElementById("send-text").value = "";
+      } else {
+        showAlert(alert, "error", "Error: " + (data.error || "Fallo al enviar."));
+      }
+    } catch (e) {
+      showAlert(alert, "error", "Error de conexión con el servidor.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Enviar Mensaje";
+    }
+  }
+
+  async function sendTemplate() {
+    const to = document.getElementById("tpl-to").value.trim();
+    const name = document.getElementById("tpl-name").value.trim();
+    const lang = document.getElementById("tpl-lang").value;
+    const alert = document.getElementById("tpl-alert");
+    if (!to || !name) return showAlert(alert, "error", "Completa el número y el nombre del template.");
+
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+
+    try {
+      const res = await fetch("/api/send-template", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to, templateName: name, languageCode: lang })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showAlert(alert, "success", "✓ Plantilla enviada correctamente.");
+      } else {
+        showAlert(alert, "error", "Error: " + (data.error || "Fallo al enviar plantilla."));
+      }
+    } catch (e) {
+      showAlert(alert, "error", "Error de conexión con el servidor.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Enviar Plantilla";
+    }
+  }
+
+  async function loadMessages() {
+    try {
+      const res = await fetch("/api/messages");
+      const msgs = await res.json();
+      const wrap = document.getElementById("messages-wrap");
+      document.getElementById("last-refresh").textContent =
+        "Actualizado: " + new Date().toLocaleTimeString("es-MX");
+
+      if (!msgs.length) {
+        wrap.innerHTML = '<div class="empty">No hay mensajes aún.<br>Los mensajes entrantes aparecerán aquí automáticamente.</div>';
+        return;
+      }
+
+      wrap.innerHTML = msgs.map(m => `
+        <div class="msg ${m.direction}">
+          <div>${escHtml(m.text)}</div>
+          <div class="msg-meta">
+            ${m.direction === "incoming" ? "📥 De: " + m.from : "📤 Para: " + m.to}
+            &nbsp;·&nbsp; ${fmtTime(m.timestamp)}
+          </div>
+        </div>
+      `).join("");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  async function loadConfig() {
+    const grid = document.getElementById("config-grid");
+    try {
+      const res = await fetch("/api/config");
+      const cfg = await res.json();
+
+      document.getElementById("webhook-url").textContent =
+        window.location.origin + "/webhook";
+      document.getElementById("webhook-token").textContent =
+        cfg["Verify Token"] || "–";
+
+      grid.innerHTML = Object.entries(cfg).map(([k, v]) => `
+        <div class="info-item">
+          <div class="info-label">${escHtml(k)}</div>
+          <div class="info-val">${escHtml(String(v))}</div>
+        </div>
+      `).join("");
+    } catch (e) {
+      grid.innerHTML = '<div class="info-item"><div class="info-label">Error</div><div class="info-val">No se pudo cargar.</div></div>';
+    }
+  }
+
+  function showAlert(el, type, msg) {
+    el.className = "alert " + type;
+    el.textContent = msg;
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => (el.className = "alert"), 5000);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function fmtTime(ts) {
+    return new Date(ts).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  // Auto-refresh history every 5s when on that tab
+  setInterval(() => {
+    if (currentSection === "history") loadMessages();
+  }, 5000);
+</script>
+
+</body>
+</html>
