@@ -124,6 +124,11 @@
       text-transform: uppercase; letter-spacing: .45px;
       margin-bottom: 6px;
     }
+    .field-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
     input, textarea, select {
       width: 100%;
       padding: 10px 13px;
@@ -157,6 +162,11 @@
     }
     .btn:hover:not(:disabled) { background: var(--green-lt); }
     .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-sm {
+      width: auto;
+      padding: 9px 16px;
+      font-size: 13px;
+    }
     .btn-outline {
       background: transparent;
       border: 1.5px solid var(--border);
@@ -195,13 +205,14 @@
       line-height: 1.45;
       word-break: break-word;
     }
-    .bubble.out { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .bubble.out  { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .bubble.in   { background: #f0f2f5; align-self: flex-start; border-bottom-left-radius: 3px; }
     .bubble.tmpl { background: #e0e7ff; align-self: flex-end; border-bottom-right-radius: 3px; }
     .bubble-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
     .empty { text-align: center; color: #cbd5e1; padding: 48px 20px; font-size: 14px; }
 
-    /* ── Info grid ── */
+    /* ── Info note ── */
     .info-note {
       background: #f0fdf4;
       border: 1.5px solid #86efac;
@@ -219,10 +230,10 @@
       font-size: 12.5px;
     }
 
-    /* ── Settings token row ── */
-    .token-row { display: flex; gap: 8px; }
-    .token-row input { flex: 1; }
-    .eye-btn {
+    /* ── Token row ── */
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .icon-btn {
       padding: 10px 13px;
       border: 1.5px solid var(--border);
       border-radius: 8px;
@@ -231,11 +242,25 @@
       font-size: 16px;
       flex-shrink: 0;
     }
-    .eye-btn:hover { background: var(--bg); }
+    .icon-btn:hover { background: var(--bg); }
 
-    /* ── Badge ── */
+    /* ── Status badge ── */
     .badge-ok  { color: var(--success); font-size: 12px; font-weight: 600; }
     .badge-no  { color: var(--danger);  font-size: 12px; font-weight: 600; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ── Pill tag (backend connected) ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .pill-green { background: #dcfce7; color: #166534; }
+    .pill-gray  { background: var(--bg); color: var(--muted); }
   </style>
 </head>
 <body>
@@ -254,7 +279,7 @@
   <!-- Banner: no config -->
   <div class="banner" id="banner-cfg">
     ⚠️ No hay credenciales guardadas.
-    <a onclick="showSection('settings', 3)">Ir a Ajustes para configurar →</a>
+    <a onclick="showSection('settings',3)">Configura tu token en Ajustes →</a>
   </div>
 
   <!-- Tabs -->
@@ -269,10 +294,10 @@
   <div id="sec-send" class="section active">
     <div class="card">
       <div class="card-title">Enviar Mensaje de Texto</div>
-
       <div class="field">
         <label>Número destino</label>
         <input type="text" id="send-to" placeholder="521234567890  (código de país sin +)" />
+        <div class="field-hint">Incluye el código de país. Ej: México → 521234567890</div>
       </div>
       <div class="field">
         <label>Mensaje</label>
@@ -287,12 +312,10 @@
   <div id="sec-templates" class="section">
     <div class="card">
       <div class="card-title">Enviar Plantilla Aprobada</div>
-
       <div class="info-note">
         Solo se pueden enviar templates <strong>aprobados</strong> en tu Meta Business Suite.
         El template <code>hello_world</code> suele estar disponible por defecto.
       </div>
-
       <div class="field">
         <label>Número destino</label>
         <input type="text" id="tpl-to" placeholder="521234567890" />
@@ -320,10 +343,11 @@
   <div id="sec-history" class="section">
     <div class="card">
       <div class="card-title">
-        Mensajes Enviados
-        <button class="btn btn-outline btn-danger" style="width:auto;padding:6px 14px;font-size:12px;" onclick="clearHistory()">
-          🗑 Limpiar
-        </button>
+        Mensajes
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="pill pill-gray" id="backend-pill">Solo enviados</span>
+          <button class="btn btn-sm btn-outline btn-danger" onclick="clearHistory()">🗑 Limpiar</button>
+        </div>
       </div>
       <div class="msg-list" id="msg-list">
         <div class="empty">Aún no has enviado mensajes.</div>
@@ -333,84 +357,103 @@
 
   <!-- ─── Ajustes ─── -->
   <div id="sec-settings" class="section">
+
+    <!-- Credenciales -->
     <div class="card">
       <div class="card-title">
-        Credenciales de API
-        <span id="cfg-status-badge"></span>
-      </div>
-
-      <div class="info-note">
-        Tus credenciales se guardan <strong>solo en este navegador</strong> (localStorage).
-        Nunca se envían a ningún servidor externo al de Meta.
+        Credenciales de la API
+        <span id="cfg-badge"></span>
       </div>
 
       <div class="field">
         <label>Access Token</label>
-        <div class="token-row">
+        <div class="input-row">
           <input type="password" id="cfg-token" placeholder="EAAB..." />
-          <button class="eye-btn" onclick="togglePwd('cfg-token', this)" title="Mostrar/Ocultar">👁</button>
+          <button class="icon-btn" onclick="togglePwd('cfg-token',this)" title="Mostrar/Ocultar">👁</button>
         </div>
+        <div class="field-hint">Tu token de acceso de Meta. Se guarda solo en este navegador.</div>
       </div>
+
       <div class="field">
         <label>Phone Number ID</label>
         <input type="text" id="cfg-phone" placeholder="1144029332120256" />
+        <div class="field-hint">El ID numérico de tu número de WhatsApp Business.</div>
       </div>
 
-      <button class="btn" onclick="saveConfig()">Guardar Configuración</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button class="btn" style="flex:1;" onclick="saveConfig()">Guardar</button>
+        <button class="btn btn-outline" style="flex:1;" onclick="testConnection()">Probar conexión</button>
+      </div>
       <div class="alert" id="cfg-alert"></div>
     </div>
 
+    <!-- Backend opcional -->
     <div class="card">
-      <div class="card-title">Cómo registrar el Webhook</div>
-      <div style="font-size:13px; color: var(--muted); line-height:1.7;">
-        Para <strong>recibir mensajes</strong> necesitas un servidor con URL pública (esta app HTML solo puede <em>enviar</em>).<br><br>
-        Opciones rápidas:<br>
-        · Despliega el backend Node.js en <strong>Railway.app</strong> o <strong>Render.com</strong><br>
-        · Registra la URL en <em>Meta Developer Dashboard → WhatsApp → Configuration → Webhook</em><br>
-        · Verify Token: el que configuraste en tu <code>.env</code>
+      <div class="card-title">Mensajes Entrantes (opcional)</div>
+
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6;">
+        Para <strong>ver las respuestas</strong> que te envíen, necesitas el backend Node.js corriendo con una URL pública.
+        Si solo quieres enviar mensajes, <strong>deja este campo vacío</strong>.
+      </p>
+
+      <div class="field">
+        <label>URL del Backend (opcional)</label>
+        <input type="text" id="cfg-backend" placeholder="https://tu-app.railway.app" />
+        <div class="field-hint">El historial descargará mensajes entrantes de esa URL cada 5 segundos.</div>
       </div>
+
+      <button class="btn" onclick="saveBackend()">Guardar URL</button>
+      <div class="alert" id="backend-alert"></div>
+
+      <hr class="divider" />
+
+      <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+        <strong>¿Cómo desplegar el backend?</strong><br>
+        1. Ve a <strong>railway.app</strong> → New Project → Deploy from GitHub repo<br>
+        2. Selecciona este mismo repositorio<br>
+        3. Agrega las variables: <code>ACCESS_TOKEN</code>, <code>PHONE_NUMBER_ID</code>, <code>VERIFY_TOKEN</code><br>
+        4. El webhook URL que debes registrar en Meta será: <code>https://tu-app.railway.app/webhook</code>
+      </p>
     </div>
+
   </div>
 
 </div><!-- /wrap -->
 
 <script>
-  // ── Storage helpers ──────────────────────────────────────────
+  // ── Storage ──────────────────────────────────────────────────
   const LS = {
-    get:  k       => localStorage.getItem(k) || '',
-    set:  (k, v)  => localStorage.setItem(k, v),
-    del:  k       => localStorage.removeItem(k),
-    getJSON: (k, def) => { try { return JSON.parse(localStorage.getItem(k)) || def; } catch { return def; } },
-    setJSON: (k, v)   => localStorage.setItem(k, JSON.stringify(v))
+    get:     k       => localStorage.getItem(k) || '',
+    set:     (k, v)  => localStorage.setItem(k, v),
+    del:     k       => localStorage.removeItem(k),
+    getJSON: (k, d)  => { try { return JSON.parse(localStorage.getItem(k)) || d; } catch { return d; } },
+    setJSON: (k, v)  => localStorage.setItem(k, JSON.stringify(v))
   };
 
   // ── Config ───────────────────────────────────────────────────
   const cfg = () => ({
-    token:   LS.get('wa_token'),
-    phoneId: LS.get('wa_phone_id')
+    token:      LS.get('wa_token'),
+    phoneId:    LS.get('wa_phone_id'),
+    backendUrl: LS.get('wa_backend_url').replace(/\/$/, '')
   });
 
-  function hasConfig() {
-    const c = cfg();
-    return !!c.token && !!c.phoneId;
-  }
+  const hasConfig = () => { const c = cfg(); return !!(c.token && c.phoneId); };
 
-  // ── History in localStorage ──────────────────────────────────
-  function getHistory()        { return LS.getJSON('wa_history', []); }
-  function saveHistory(list)   { LS.setJSON('wa_history', list.slice(0, 200)); }
+  // ── History (localStorage = sent only) ───────────────────────
+  const getLocalHistory = ()    => LS.getJSON('wa_history', []);
+  const saveLocalHistory = list => LS.setJSON('wa_history', list.slice(0, 200));
 
-  function addToHistory(entry) {
-    const list = getHistory();
+  function addSent(entry) {
+    const list = getLocalHistory();
     list.unshift(entry);
-    saveHistory(list);
-    renderHistory();
+    saveLocalHistory(list);
   }
 
   // ── Tab navigation ───────────────────────────────────────────
-  const sectionIds = ['sec-send','sec-templates','sec-history','sec-settings'];
+  const SECTIONS = ['sec-send','sec-templates','sec-history','sec-settings'];
 
   function showSection(name, idx) {
-    sectionIds.forEach(id => document.getElementById(id).classList.remove('active'));
+    SECTIONS.forEach(id => document.getElementById(id).classList.remove('active'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById('sec-' + name).classList.add('active');
     document.querySelectorAll('.tab')[idx].classList.add('active');
@@ -423,7 +466,7 @@
     document.getElementById('banner-cfg').classList.toggle('show', !hasConfig());
   }
 
-  // ── API call to WhatsApp Cloud API ───────────────────────────
+  // ── WhatsApp API call ────────────────────────────────────────
   async function waPost(body) {
     const { token, phoneId } = cfg();
     if (!token || !phoneId) throw new Error('Configura tus credenciales en Ajustes primero.');
@@ -432,44 +475,35 @@
       `https://graph.facebook.com/v18.0/${phoneId}/messages`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       }
     );
-
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || `Error ${res.status}`);
     return data;
   }
 
-  // ── Send text message ────────────────────────────────────────
+  // ── Send text ────────────────────────────────────────────────
   async function doSend() {
     const to  = document.getElementById('send-to').value.trim();
     const msg = document.getElementById('send-msg').value.trim();
     const al  = document.getElementById('send-alert');
-    if (!to || !msg) return alert_(al, 'err', 'Completa el número y el mensaje.');
+    if (!to || !msg) return showAlert(al, 'err', 'Completa el número y el mensaje.');
 
     const btn = event.currentTarget;
-    btn.disabled = true; btn.textContent = 'Enviando…';
+    setLoading(btn, true, 'Enviando…');
 
     try {
-      await waPost({
-        messaging_product: 'whatsapp',
-        to,
-        type: 'text',
-        text: { body: msg }
-      });
-
-      addToHistory({ type: 'text', to, text: msg, ts: Date.now() });
-      alert_(al, 'ok', '✓ Mensaje enviado correctamente.');
+      await waPost({ messaging_product: 'whatsapp', to, type: 'text', text: { body: msg } });
+      addSent({ direction: 'outgoing', to, text: msg, ts: Date.now() });
+      LS.set('wa_last_to', to);
+      showAlert(al, 'ok', '✓ Mensaje enviado correctamente.');
       document.getElementById('send-msg').value = '';
     } catch (e) {
-      alert_(al, 'err', e.message);
+      showAlert(al, 'err', e.message);
     } finally {
-      btn.disabled = false; btn.textContent = 'Enviar Mensaje';
+      setLoading(btn, false, 'Enviar Mensaje');
     }
   }
 
@@ -479,77 +513,145 @@
     const name = document.getElementById('tpl-name').value.trim();
     const lang = document.getElementById('tpl-lang').value;
     const al   = document.getElementById('tpl-alert');
-    if (!to || !name) return alert_(al, 'err', 'Completa el número y el nombre del template.');
+    if (!to || !name) return showAlert(al, 'err', 'Completa el número y el nombre del template.');
 
     const btn = event.currentTarget;
-    btn.disabled = true; btn.textContent = 'Enviando…';
+    setLoading(btn, true, 'Enviando…');
 
     try {
       await waPost({
-        messaging_product: 'whatsapp',
-        to,
-        type: 'template',
+        messaging_product: 'whatsapp', to, type: 'template',
         template: { name, language: { code: lang } }
       });
-
-      addToHistory({ type: 'template', to, text: `[Template: ${name} / ${lang}]`, ts: Date.now() });
-      alert_(al, 'ok', '✓ Plantilla enviada correctamente.');
+      addSent({ direction: 'outgoing', to, text: `[Template: ${name} / ${lang}]`, ts: Date.now() });
+      LS.set('wa_last_to', to);
+      showAlert(al, 'ok', '✓ Plantilla enviada correctamente.');
     } catch (e) {
-      alert_(al, 'err', e.message);
+      showAlert(al, 'err', e.message);
     } finally {
-      btn.disabled = false; btn.textContent = 'Enviar Plantilla';
+      setLoading(btn, false, 'Enviar Plantilla');
     }
   }
 
-  // ── Render history ───────────────────────────────────────────
-  function renderHistory() {
-    const list = getHistory();
-    const el   = document.getElementById('msg-list');
+  // ── History rendering ────────────────────────────────────────
+  let remoteMessages = [];
 
-    if (!list.length) {
-      el.innerHTML = '<div class="empty">Aún no has enviado mensajes.</div>';
+  async function fetchRemoteMessages() {
+    const { backendUrl } = cfg();
+    if (!backendUrl) return;
+    try {
+      const res  = await fetch(`${backendUrl}/api/messages`);
+      remoteMessages = await res.json();
+    } catch { /* backend unreachable, keep last */ }
+  }
+
+  function mergeMessages() {
+    const local = getLocalHistory().map(m => ({ ...m, source: 'local' }));
+    const remote = remoteMessages
+      .filter(m => m.direction === 'incoming')
+      .map(m => ({ direction: 'incoming', from: m.from, text: m.text, ts: new Date(m.timestamp).getTime(), source: 'remote' }));
+
+    const all = [...local, ...remote];
+    all.sort((a, b) => b.ts - a.ts);
+    return all;
+  }
+
+  async function renderHistory() {
+    await fetchRemoteMessages();
+
+    const { backendUrl } = cfg();
+    const pill = document.getElementById('backend-pill');
+    if (backendUrl && remoteMessages.length > 0) {
+      pill.className = 'pill pill-green';
+      pill.textContent = '● Backend conectado';
+    } else if (backendUrl) {
+      pill.className = 'pill pill-gray';
+      pill.textContent = 'Backend sin mensajes';
+    } else {
+      pill.className = 'pill pill-gray';
+      pill.textContent = 'Solo enviados';
+    }
+
+    const all = mergeMessages();
+    const el  = document.getElementById('msg-list');
+
+    if (!all.length) {
+      el.innerHTML = '<div class="empty">Aún no hay mensajes.<br>Envía uno desde la tab ✉️</div>';
       return;
     }
 
-    el.innerHTML = list.map(m => `
-      <div class="bubble ${m.type === 'template' ? 'tmpl' : 'out'}">
-        <div>${esc(m.text)}</div>
-        <div class="bubble-meta">📤 Para: ${esc(m.to)} · ${fmtTime(m.ts)}</div>
-      </div>
-    `).join('');
+    el.innerHTML = all.map(m => {
+      const cls  = m.direction === 'incoming' ? 'in' : (m.text?.startsWith('[Template') ? 'tmpl' : 'out');
+      const icon = m.direction === 'incoming' ? '📥' : '📤';
+      const who  = m.direction === 'incoming' ? `De: ${esc(m.from || '?')}` : `Para: ${esc(m.to || '?')}`;
+      return `
+        <div class="bubble ${cls}">
+          <div>${esc(m.text)}</div>
+          <div class="bubble-meta">${icon} ${who} · ${fmtTime(m.ts)}</div>
+        </div>`;
+    }).join('');
   }
 
   function clearHistory() {
-    if (!confirm('¿Limpiar todo el historial?')) return;
+    if (!confirm('¿Limpiar el historial de mensajes enviados?')) return;
     LS.del('wa_history');
+    remoteMessages = [];
     renderHistory();
   }
 
   // ── Settings ─────────────────────────────────────────────────
   function fillSettings() {
     const c = cfg();
-    document.getElementById('cfg-token').value = c.token;
-    document.getElementById('cfg-phone').value = c.phoneId;
-    updateStatusBadge();
+    document.getElementById('cfg-token').value   = c.token;
+    document.getElementById('cfg-phone').value   = c.phoneId;
+    document.getElementById('cfg-backend').value = c.backendUrl;
+    updateBadge();
   }
 
   function saveConfig() {
     const token   = document.getElementById('cfg-token').value.trim();
     const phoneId = document.getElementById('cfg-phone').value.trim();
     const al      = document.getElementById('cfg-alert');
-
-    if (!token || !phoneId) return alert_(al, 'err', 'Ambos campos son obligatorios.');
+    if (!token || !phoneId) return showAlert(al, 'err', 'Ambos campos son obligatorios.');
 
     LS.set('wa_token',    token);
     LS.set('wa_phone_id', phoneId);
-
-    alert_(al, 'ok', '✓ Credenciales guardadas en este navegador.');
-    updateStatusBadge();
+    showAlert(al, 'ok', '✓ Credenciales guardadas.');
+    updateBadge();
     checkBanner();
   }
 
-  function updateStatusBadge() {
-    const el = document.getElementById('cfg-status-badge');
+  function saveBackend() {
+    const url = document.getElementById('cfg-backend').value.trim();
+    LS.set('wa_backend_url', url);
+    showAlert(document.getElementById('backend-alert'), 'ok',
+      url ? `✓ URL guardada: ${url}` : '✓ URL eliminada. Solo se mostrarán mensajes enviados.');
+  }
+
+  async function testConnection() {
+    const al = document.getElementById('cfg-alert');
+    const { token, phoneId } = cfg();
+    if (!token || !phoneId) return showAlert(al, 'err', 'Guarda primero el token y Phone ID.');
+
+    const btn = event.currentTarget;
+    setLoading(btn, true, 'Probando…');
+
+    try {
+      const res  = await fetch(`https://graph.facebook.com/v18.0/${phoneId}?fields=display_phone_number,verified_name`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || `Error ${res.status}`);
+      showAlert(al, 'ok', `✓ Conexión OK — Número: ${data.display_phone_number || phoneId} (${data.verified_name || 'verificado'})`);
+    } catch (e) {
+      showAlert(al, 'err', `✗ Fallo: ${e.message}`);
+    } finally {
+      setLoading(btn, false, 'Probar conexión');
+    }
+  }
+
+  function updateBadge() {
+    const el = document.getElementById('cfg-badge');
     el.innerHTML = hasConfig()
       ? '<span class="badge-ok">● Configurado</span>'
       : '<span class="badge-no">● Sin configurar</span>';
@@ -557,35 +659,56 @@
 
   function togglePwd(id, btn) {
     const inp = document.getElementById(id);
-    if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
-    else                         { inp.type = 'password'; btn.textContent = '👁'; }
+    inp.type  = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? '👁' : '🙈';
   }
 
   // ── Helpers ──────────────────────────────────────────────────
-  function alert_(el, type, msg) {
+  function showAlert(el, type, msg) {
     el.className = 'alert ' + type;
     el.textContent = msg;
     clearTimeout(el._t);
     el._t = setTimeout(() => (el.className = 'alert'), 6000);
   }
 
+  function setLoading(btn, on, label) {
+    btn.disabled    = on;
+    btn.textContent = label;
+  }
+
   function esc(s) {
-    return String(s)
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   function fmtTime(ts) {
     return new Date(ts).toLocaleString('es-MX', {
-      month:'short', day:'numeric',
-      hour:'2-digit', minute:'2-digit'
+      month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'
     });
   }
+
+  // ── Auto-refresh history ─────────────────────────────────────
+  let currentSection = 'send';
+  const _origShow = showSection;
+  // track current section
+  window.showSection = function(name, idx) {
+    currentSection = name;
+    _origShow(name, idx);
+  };
+  setInterval(() => { if (currentSection === 'history') renderHistory(); }, 5000);
 
   // ── Init ─────────────────────────────────────────────────────
   (function init() {
     checkBanner();
-    updateStatusBadge();
-    // If no credentials, open Settings tab automatically
+    updateBadge();
+
+    // Pre-fill last used number
+    const lastTo = LS.get('wa_last_to');
+    if (lastTo) {
+      document.getElementById('send-to').value = lastTo;
+      document.getElementById('tpl-to').value  = lastTo;
+    }
+
+    // If no credentials, open Settings
     if (!hasConfig()) showSection('settings', 3);
   })();
 </script>
