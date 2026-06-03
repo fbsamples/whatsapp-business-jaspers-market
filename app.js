@@ -91,7 +91,7 @@ function verifyRequestSignature(req, res, buf) {
   let signature = req.headers["x-hub-signature-256"];
 
   if (!signature) {
-    console.warn(`Couldn't find "x-hub-signature-256" in headers.`);
+    throw new Error("Couldn't find \"x-hub-signature-256\" in headers.");
   } else {
     let elements = signature.split("=");
     let signatureHash = elements[1];
