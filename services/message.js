@@ -10,10 +10,14 @@
 module.exports = class Message {
   constructor(rawMessage) {
     this.id = rawMessage.id;
+    this.timestamp = rawMessage.timestamp;
 
     let type = rawMessage.type;
     if (type === 'interactive') {
       this.type = rawMessage.interactive.button_reply.id;
+    } else if (type === 'text') {
+      this.type = 'text';
+      this.body = rawMessage.text.body;
     } else {
       this.type = 'unknown'
     }

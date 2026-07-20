@@ -13,6 +13,7 @@ const GraphApi = require('./graph-api');
 const Message = require('./message');
 const Status = require('./status');
 const Cache = require('./redis');
+const AIService = require('./ai');
 
 
 function sendTryOutDemoMessage(messageId, senderPhoneNumberId, recipientPhoneNumber, messageBody) {
@@ -118,6 +119,29 @@ module.exports = class Conversation {
           message.senderPhoneNumber
         );
         await markMessageForFollowUp(ltoResponse.messages[0].id);
+        break;
+      case 'text':
+        // Use AI service to generate response for text messages
+        try {
+          const aiResponse = await AIService.generateResponse(message.body, {
+            businessName: "Jasper's Market",
+            businessContext: "a friendly online grocery store"
+          });
+          await GraphApi.sendMessage(
+            message.id,
+            senderPhoneNumberId,
+            message.senderPhoneNumber,
+            aiResponse
+          );
+        } catch (error) {
+          console.error("Error in AI conversation:", error);
+          sendTryOutDemoMessage(
+            message.id,
+            senderPhoneNumberId,
+            message.senderPhoneNumber,
+            constants.APP_DEFAULT_MESSAGE
+          );
+        }
         break;
       default:
         sendTryOutDemoMessage(
