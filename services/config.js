@@ -33,7 +33,7 @@ module.exports = Object.freeze({
 
   // Google Gemini AI configuration
   geminiApiKey: process.env.GEMINI_API_KEY,
-  geminiModel: process.env.GEMINI_MODEL || "gemini-pro",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
 
   checkEnvVariables: function () {
     ENV_VARS.forEach(function (key) {
