@@ -200,4 +200,17 @@ module.exports = class GraphApi {
     return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }
 
+  static async sendMessage(messageId, senderPhoneNumberId, recipientPhoneNumber, messageText) {
+    const requestBody = {
+      messaging_product: "whatsapp",
+      to: recipientPhoneNumber,
+      type: "text",
+      text: {
+        body: messageText
+      }
+    };
+
+    return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
+  }
+
 };

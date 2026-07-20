@@ -16,7 +16,8 @@ const ENV_VARS = [
   "APP_SECRET",
   "VERIFY_TOKEN",
   "REDIS_HOST",
-  "REDIS_PORT"
+  "REDIS_PORT",
+  "GEMINI_API_KEY"
 ];
 
 module.exports = Object.freeze({
@@ -29,6 +30,10 @@ module.exports = Object.freeze({
   port: process.env.PORT || 8080,
   redisHost: process.env.REDIS_HOST || "localhost",
   redisPort: process.env.REDIS_PORT || 6379,
+
+  // Google Gemini AI configuration
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  geminiModel: process.env.GEMINI_MODEL || "gemini-1.5-flash",
 
   checkEnvVariables: function () {
     ENV_VARS.forEach(function (key) {
