@@ -17,9 +17,9 @@ const OUTBOUND: { kind: "image" | "video" | "audio"; mimes: string[]; max: numbe
 const DOCUMENT_MAX = 100 * MB;
 
 // Tipos que el navegador puede mostrar dentro del panel sin riesgo. El resto se descarga.
-const INLINE = /^(image\/(jpeg|png|webp|gif)|audio\/.+|video\/.+|application\/pdf)$/;
+export const INLINE = /^(image\/(jpeg|png|webp|gif)|audio\/.+|video\/.+|application\/pdf)$/;
 
-const EXTENSIONS: Record<string, string> = {
+export const EXTENSIONS: Record<string, string> = {
   "image/jpeg": ".jpg",
   "image/png": ".png",
   "image/webp": ".webp",

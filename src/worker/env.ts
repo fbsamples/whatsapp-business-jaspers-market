@@ -26,6 +26,8 @@ export interface Env {
   DASHBOARD_PASSWORD: string;
   // Opcional: llave de la Claude API (proveedor "claude" en Configuración → IA).
   ANTHROPIC_API_KEY?: string;
+  // Opcional: llave de la API de Brevo. Con ella, cada mensaje entrante se reenvía a ADMIN_EMAIL.
+  BREVO_API_KEY?: string;
 }
 
 export type Session = { userId: number; email: string; sessionId: string };

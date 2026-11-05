@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import { autoReply, shouldTrigger } from "./ai";
 import { hmacSha256Hex, safeEqual } from "./crypto";
+import { forwardInbound } from "./email";
 import type { AppEnv } from "./env";
 import { storeInbound } from "./media";
 import { notify } from "./realtime";
@@ -79,7 +80,7 @@ export async function receiveWebhook(c: Context<AppEnv>) {
   const changed = new Set<number>();
   // Conversaciones con mensajes nuevos del cliente (para las notificaciones del navegador).
   const inbound = new Set<number>();
-  const downloads: Promise<unknown>[] = [];
+  const background: Promise<unknown>[] = [];
   // Último mensaje entrante de cada chat que la IA podría contestar.
   const toAnswer = new Map<number, number>();
   let templatesChanged = false;
@@ -106,16 +107,18 @@ export async function receiveWebhook(c: Context<AppEnv>) {
       );
       for (const msg of value.messages ?? []) {
         const media = MEDIA_TYPES.includes(msg.type) ? msg[msg.type] : null;
+        const body = describeMessage(msg);
+        const createdAt = parseInt(msg.timestamp, 10) * 1000 || Date.now();
         const saved = await saveMessage(db, {
           waId: msg.from,
           profileName: names.get(msg.from) ?? null,
           wamid: msg.id ?? null,
           direction: "in",
           type: msg.type,
-          body: describeMessage(msg),
+          body,
           payload: msg,
           status: "received",
-          createdAt: parseInt(msg.timestamp, 10) * 1000 || Date.now(),
+          createdAt,
           caption: media?.caption ?? null,
           media: media?.id
             ? { id: String(media.id), mime: media.mime_type ?? "application/octet-stream", name: media.filename ?? null }
@@ -126,13 +129,30 @@ export async function receiveWebhook(c: Context<AppEnv>) {
         inbound.add(saved.conversationId);
         if (shouldTrigger(msg.type)) toAnswer.set(saved.conversationId, saved.messageId);
         else toAnswer.delete(saved.conversationId);
-        // La descarga va en segundo plano para responder rápido a Meta; al terminar se avisa al panel.
+        const forward = (mediaKey: string | null) =>
+          forwardInbound(env, {
+            conversationId: saved.conversationId,
+            messageId: saved.messageId,
+            waId: msg.from,
+            body,
+            createdAt,
+            media: media?.id ? { key: mediaKey, name: media.filename ?? null } : null
+          }).catch(e => console.error("Error al reenviar por correo", e));
+        // La descarga va en segundo plano para responder rápido a Meta; al terminar se avisa al
+        // panel y sale el correo, con el archivo adjunto. Una reacción no se reenvía: no es un mensaje.
         if (media?.id) {
-          downloads.push(
+          background.push(
             storeInbound(env, saved.messageId, String(media.id))
-              .catch(e => console.error("Error al guardar multimedia", e))
-              .then(() => notify(env, { type: "message", conversationId: saved.conversationId }))
+              .catch(e => {
+                console.error("Error al guardar multimedia", e);
+                return null;
+              })
+              .then(key =>
+                Promise.all([notify(env, { type: "message", conversationId: saved.conversationId }), forward(key)])
+              )
           );
+        } else if (msg.type !== "reaction") {
+          background.push(forward(null));
         }
       }
       for (const st of value.statuses ?? []) {
@@ -148,7 +168,7 @@ export async function receiveWebhook(c: Context<AppEnv>) {
     Promise.all([
       ...[...changed].map(id => notify(env, { type: "message", conversationId: id, inbound: inbound.has(id) })),
       ...(templatesChanged ? [notify(env, { type: "templates" })] : []),
-      ...downloads,
+      ...background,
       ...[...toAnswer].map(([conversationId, messageId]) =>
         autoReply(env, conversationId, messageId).catch(e => console.error("Error en la respuesta automática", e))
       )

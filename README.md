@@ -8,6 +8,7 @@ Bandeja de WhatsApp Business para **Logidma**, corriendo en **Cloudflare Workers
 - **Multimedia**: recibe y envía imágenes, video, audio (incluye notas de voz grabadas desde el navegador) y documentos. Los archivos se guardan en R2 y solo se sirven con sesión.
 - **Tiempo real**: los mensajes y estados llegan al instante por WebSocket (Durable Object `RealtimeHub`); si la conexión se cae, la bandeja vuelve al polling.
 - **Notas y etiquetas** por contacto, con filtro por etiqueta y búsqueda en las notas.
+- **Reenvío por correo**: cada mensaje que llega se reenvía a `ADMIN_EMAIL` por la API de Brevo, con el enlace al chat y el archivo adjunto cuando se puede.
 - **Webhook** en `/webhook` que valida la firma de Meta y guarda mensajes y estados en D1.
 - Páginas públicas: `/privacidad`, `/terminos`, `/eliminacion-datos`.
 
@@ -43,6 +44,7 @@ Secretos (se cargan en Cloudflare, **nunca** en el repositorio):
 | `VERIFY_TOKEN` | Frase de verificación del webhook configurada en Meta |
 | `ADMIN_EMAIL` | Único correo que puede iniciar sesión |
 | `DASHBOARD_PASSWORD` | Contraseña inicial: solo se usa para crear el usuario en el primer inicio de sesión. Después se cambia desde Configuración → Cuenta y seguridad |
+| `BREVO_API_KEY` | Opcional: llave de la API de Brevo (`xkeysib-…`). Sin ella, no se reenvía nada por correo |
 
 ## Despliegue
 

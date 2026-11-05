@@ -7,3 +7,5 @@ ADMIN_EMAIL=tu-correo@ejemplo.com
 DASHBOARD_PASSWORD=contraseña-inicial
 # Opcional: solo si eliges Claude como proveedor de IA.
 ANTHROPIC_API_KEY=
+# Opcional: con esta llave, cada mensaje entrante se reenvía por correo a ADMIN_EMAIL.
+BREVO_API_KEY=

@@ -50,8 +50,8 @@
   ],
 
   // Valores no secretos. Los secretos (ACCESS_TOKEN, APP_SECRET,
-  // VERIFY_TOKEN, ADMIN_EMAIL, DASHBOARD_PASSWORD y, opcional,
-  // ANTHROPIC_API_KEY) se cargan con
+  // VERIFY_TOKEN, ADMIN_EMAIL, DASHBOARD_PASSWORD y, opcionales,
+  // ANTHROPIC_API_KEY y BREVO_API_KEY) se cargan con
   // `wrangler secret put` o en el panel de Cloudflare, nunca aquí.
   "vars": {
     "PHONE_NUMBER_ID": "1253350567872957",
