@@ -9,6 +9,11 @@
 
 const { FacebookAdsApi } = require('facebook-nodejs-business-sdk');
 const config = require("./config");
+const {
+  buildLimitedTimeOfferTemplatePayload,
+  buildMediaCardCarouselPayload,
+  buildUtilityTemplatePayload,
+} = require("./message-payloads");
 
 const api = new FacebookAdsApi(config.accessToken);
 
@@ -73,129 +78,30 @@ module.exports = class GraphApi {
   }
 
   static async messageWithUtilityTemplate(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
-    const { templateName, locale, imageLink } = options;
-    const requestBody = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: recipientPhoneNumber,
-      type: "template",
-      template: {
-        "name": templateName,
-        "language": {
-          "code": locale
-        },
-        "components": [
-          {
-            "type": "header",
-            "parameters": [
-              {
-                "type": "image",
-                "image": {
-                  "link": imageLink
-                }
-              }
-            ]
-          },
-        ]
-      }
-    };
+    const requestBody = buildUtilityTemplatePayload({
+      recipientPhoneNumber,
+      ...options,
+    });
 
     return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }
 
   static async messageWithLimitedTimeOfferTemplate(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
-
-    const { templateName, locale, imageLink, offerCode } = options;
-
-    const currentTime = new Date();
-    const futureTime = new Date(currentTime.getTime() + (48 * 60 * 60 * 1000));
-
-    const requestBody = {
-      "messaging_product": "whatsapp",
-      "recipient_type": "individual",
-      "to": recipientPhoneNumber,
-      "type": "template",
-      "template": {
-        "name": templateName,
-        "language": {
-          "code": locale
-        },
-        "components": [
-          {
-            "type": "header",
-            "parameters": [
-              {
-                "type": "image",
-                "image": {
-                  "link": imageLink
-                }
-              }
-            ]
-          },
-          {
-            "type": "limited_time_offer",
-            "parameters": [
-              {
-                "type": "limited_time_offer",
-                "limited_time_offer": {
-                  "expiration_time_ms": futureTime.getTime()
-                }
-              }
-            ]
-          },
-          {
-            "type": "button",
-            "sub_type": "copy_code",
-            "index": 0,
-            "parameters": [
-              {
-                "type": "coupon_code",
-                "coupon_code": offerCode
-              }
-            ]
-          }
-        ]
-      }
-    };
+    const expirationTimeMs = Date.now() + (48 * 60 * 60 * 1000);
+    const requestBody = buildLimitedTimeOfferTemplatePayload({
+      recipientPhoneNumber,
+      expirationTimeMs,
+      ...options,
+    });
 
     return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }
 
   static async messageWithMediaCardCarousel(messageId, senderPhoneNumberId, recipientPhoneNumber, options) {
-    const { templateName, locale, imageLinks } = options;
-    const requestBody = {
-      "messaging_product": "whatsapp",
-      "recipient_type": "individual",
-      "to": recipientPhoneNumber,
-      "type": "template",
-      "template": {
-        "name": templateName,
-        "language": {
-          "code": locale
-        },
-        "components": [
-          {
-            "type": "carousel",
-            "cards": imageLinks.map((imageLink, idx) => ({
-              "card_index": idx,
-              "components": [
-                {
-                  "type": "header",
-                  "parameters": [
-                    {
-                      "type": "image",
-                      "image": {
-                        "link": imageLink
-                      }
-                    }
-                  ]
-                }
-              ]
-            }))
-          }
-        ]
-      }
-    };
+    const requestBody = buildMediaCardCarouselPayload({
+      recipientPhoneNumber,
+      ...options,
+    });
 
     return this.#makeApiCall(messageId, senderPhoneNumberId, requestBody);
   }

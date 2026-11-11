@@ -20,7 +20,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "test": "echo no tests yet!"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
